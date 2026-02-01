@@ -1,21 +1,24 @@
 import logging
 import os
+import asyncio
 from telegram import Update
-from telegram.ext import Application, ChatJoinRequestHandler, ContextTypes
+from telegram.ext import (
+    Application,
+    ChatJoinRequestHandler,
+    ContextTypes,
+)
 
-# Логи
+# Логирование
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-# Токен из переменных окружения
+# Токен из переменных окружения (на Render)
 TOKEN = os.environ.get("BOT_TOKEN")
-
 if not TOKEN:
-    logger.error("BOT_TOKEN не найден!")
-    raise ValueError("BOT_TOKEN не найден в переменных окружения")
+    raise ValueError("BOT_TOKEN не найден в переменных окружения!")
 
 WELCOME_TEXT = """
 👋 Hallo! Schön, dass du da bist.
@@ -34,12 +37,12 @@ async def handle_join_request(update: Update, context: ContextTypes.DEFAULT_TYPE
             chat_id=request.chat.id,
             user_id=request.from_user.id
         )
-        logger.info(f"Заявка одобрена для пользователя {request.from_user.id}")
+        logger.info(f"Одобрена заявка пользователя {request.from_user.id}")
     except Exception as e:
-        logger.error(f"Ошибка одобрения заявки: {e}")
+        logger.error(f"Ошибка одобрения: {e}")
         return
 
-    # Отправляем приветствие в личку
+    # Отправляем приветствие в личные сообщения
     try:
         await context.bot.send_message(
             chat_id=request.from_user.id,
@@ -52,29 +55,29 @@ async def handle_join_request(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def main():
     application = Application.builder().token(TOKEN).build()
 
-    # Добавляем обработчик заявок на вступление
+    # Добавляем обработчик
     application.add_handler(ChatJoinRequestHandler(handle_join_request))
 
-    # Настройки webhook для Render
-    PORT = int(os.environ.get("PORT", "8443"))
+    # Настройки webhook
+    PORT = int(os.environ.get("PORT", 8443))
     HOST = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
 
     if not HOST:
-        logger.error("RENDER_EXTERNAL_HOSTNAME не найден!")
-        raise ValueError("RENDER_EXTERNAL_HOSTNAME не найден")
+        raise ValueError("RENDER_EXTERNAL_HOSTNAME не найден!")
 
-    webhook_path = f"/{TOKEN}"
+    webhook_path = f"/bot{TOKEN}"  # путь, чтобы было уникально
     webhook_url = f"https://{HOST}{webhook_path}"
 
-    logger.info(f"Установка webhook на: {webhook_url}")
+    logger.info(f"Устанавливаем webhook → {webhook_url}")
 
     # Устанавливаем webhook
     await application.bot.set_webhook(
         url=webhook_url,
-        allowed_updates=Update.ALL_TYPES
+        allowed_updates=Update.ALL_TYPES,
+        drop_pending_updates=True  # полезно при перезапуске
     )
 
-    # Запускаем приложение (это включает сервер webhook)
+    # Запускаем приложение в режиме webhook
     await application.initialize()
     await application.start()
     await application.updater.start_webhook(
@@ -85,9 +88,7 @@ async def main():
     )
 
     # Держим процесс живым
-    import asyncio
-    await asyncio.Event().wait()  # бесконечное ожидание
+    await asyncio.Event().wait()
 
 if __name__ == "__main__":
-    import asyncio
     asyncio.run(main())
