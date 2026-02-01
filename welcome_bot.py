@@ -25,7 +25,7 @@ WELCOME_TEXT = """
 
 Dein erster Schritt zu echtem Online-Gewinn wartet: bis zu 700 € 💸 mit der ersten Kombination.
 
-📩 Schreib mir direkt im Privat-Chat - @andreeas_keller, um alle Details zu bekommen!
+📩 Schreib mir direkt im Privat-Chat - https://t.me/andreeas_keller , um alle Details zu bekommen!
 """
 
 async def handle_join_request(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
