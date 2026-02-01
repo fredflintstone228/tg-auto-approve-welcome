@@ -80,11 +80,14 @@ async def main():
     # Запускаем приложение в режиме webhook
     await application.initialize()
     await application.start()
-    await application.updater.start_webhook(
+    await application.process_update(Update.de_json({"update_id": 0}, application.bot))  # dummy для инициализации
+    await application.run_webhook(
         listen="0.0.0.0",
         port=PORT,
         url_path=webhook_path,
-        webhook_url=webhook_url
+        webhook_url=webhook_url,
+        allowed_updates=Update.ALL_TYPES,
+        drop_pending_updates=True
     )
 
     # Держим процесс живым
